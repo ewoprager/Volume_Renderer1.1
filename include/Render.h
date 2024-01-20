@@ -4,13 +4,13 @@
 #include "Header.h"
 #include "Tools.h"
 
-//#define RENDER_POINTS_3D
-//#define RENDER_POINTS_ENLARGED
-//#define RENDER_POINTS_2D
+#define RENDER_POINTS_3D
+#define RENDER_POINTS_ENLARGED
+#define RENDER_POINTS_2D
 //#define RENDER_AXES
-//#define RENDER_OTIC_CAPSULES
-//#define RENDER_MEMRY
-//#define RENDER_COMP_RECT
+#define RENDER_OTIC_CAPSULES
+#define RENDER_MEMRY
+#define RENDER_COMP_RECT
 
 namespace Render {
 
@@ -59,7 +59,7 @@ struct DrawArray {
 	GLsizei size;
 	bool arrayAllocated;
 	
-	void Enable(const GLuint &index, int parameterI) const {
+	void Enable(GLuint index, int parameterI) const {
 		glVertexAttribPointer(index, parameters[parameterI].n, parameters[parameterI].glType, parameters[parameterI].normalised, stride, (GLvoid *)parameterOffsets[parameterI]);
 		glEnableVertexAttribArray(index);
 	}
@@ -94,7 +94,7 @@ struct DrawElementArray {
 	GLsizei indicesSize;
 	bool arraysAllocated;
 	
-	void Enable(const GLuint &index, int parameterI) const {
+	void Enable(GLuint index, int parameterI) const {
 		glVertexAttribPointer(index, parameters[parameterI].n, parameters[parameterI].glType, parameters[parameterI].normalised, stride, (GLvoid *)parameterOffsets[parameterI]);
 		glEnableVertexAttribArray(index);
 	}
@@ -118,7 +118,7 @@ float PortHeightInverse();
 const SDL_Rect &CompRect();
 #define VOLUME_RENDER_BUFFER_SIZE (1000*1000*sizeof(uint16_t))
 const uint16_t (&VolumeRenderBuffer())[VOLUME_RENDER_BUFFER_SIZE];
-const GLuint &VBO(const int& index);
+GLuint VBO(const int& index);
 
 bool &ShouldTakeDRR();
 void ShouldSaveRects(const char *name=nullptr);

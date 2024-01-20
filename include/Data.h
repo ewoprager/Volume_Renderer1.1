@@ -7,7 +7,7 @@
 
 #define THRESHOLD_CT_DATA
 
-class VData {
+class IData {
 public:
 	virtual void InitGLComponents() = 0;
 	virtual void MakeTexture(bool autoWindow=false) const = 0;
@@ -17,15 +17,15 @@ protected:
 	bool glInitialised = false;
 };
 
-class CTData : public VData {
+class CTData : public IData {
 public:
 	void InitGLComponents() override;
 	void MakeTexture(bool autoWindow=false) const override; // requires prior initialisation of GL components
 	
-	const GLuint &TextureHandle() const { return textureHandle; }
-	const uint16_t &Width() const { return width; }
-	const uint16_t &Height() const { return height; }
-	const uint16_t &Depth() const { return depth; }
+	GLuint TextureHandle() const { return textureHandle; }
+	uint16_t Width() const { return width; }
+	uint16_t Height() const { return height; }
+	uint16_t Depth() const { return depth; }
 	const vec<3> &Spacing() const { return spacing; }
 	float DirVecLength() const { return dirVecLength; }
 	
@@ -51,15 +51,15 @@ private:
 	mat<4, 4> matrixC4;
 };
 
-class XRData : public VData {
+class XRData : public IData {
 public:
 	void Load(int _width, int _height, const vec<2> &_spacing, uint16_t *_data);
 	void InitGLComponents() override;
 	void MakeTexture(bool autoWindow=false) const override; // requires prior initialisation of GL components
 	
-	const GLuint &TextureHandle() const { return textureHandle; }
-	const uint16_t &Width() const { return width; }
-	const uint16_t &Height() const { return height; }
+	GLuint TextureHandle() const { return textureHandle; }
+	uint16_t Width() const { return width; }
+	uint16_t Height() const { return height; }
 	const vec<2> &Spacing() const { return spacing; }
 	const vec<3> &SourcePosition() const { return sourcePosition; }
 	

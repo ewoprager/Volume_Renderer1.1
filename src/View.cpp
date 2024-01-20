@@ -318,7 +318,7 @@ void View::KeyTime(SDL_Event event){
 	glClearColor(1.0, 1.0, 1.0, 1.0);
 	unsigned long T = UTime();
 	for(int i=0; i<10000; i++){
-		params([](){ return Uniform(-1.0f, 1.0f); });
+		params = Params::FromFunction([](){ return Uniform(-1.0f, 1.0f); });
 		UpdateSourceOffset(params.sourceOffset);
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 		Render::DrawVolumeRender(params.pan, Render::RotationMatrix(params.rotation), ViewManager().SamplesN(), ViewManager().Range(), ViewManager().Centre(), DrawMode::deep_drr_only/*, params.sourceOffset*/);

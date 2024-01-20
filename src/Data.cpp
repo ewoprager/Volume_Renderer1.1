@@ -232,7 +232,7 @@ void XRDicomData::Load(const char *filename){
 	fread(&spacing, 8, 1, fptr);
 	//fread(&sourcePosition, 12, 1, fptr);
 	fread(&sourcePosition.z, 4, 1, fptr);
-	sourcePosition.x = 0.0f; sourcePosition.y = 0.0f;
+	sourcePosition.xy_r() = {0.0f, 0.0f};
 	
 	length -= 16;//24;
 	const int N = width*height;
@@ -255,7 +255,7 @@ void XRDicomData::Load(const char *filename){
 			{1.0f, 0.0f, 0.0f, 0.0f},
 			{0.0f, 1.0f, 0.0f, 0.0f},
 			{0.0f, 0.0f, 1.0f, 0.0f},
-			{-sourcePosition.x, -sourcePosition.y, -sourcePosition.z, 1.0f}
+			(-1.0f * sourcePosition) | 1.0f
 		}};
 	}
 	
@@ -268,15 +268,15 @@ void XRDicomData::Load(const char *filename){
 			{d, 0.0f, 0.0f, 0.0f},
 			{0.0f, d, 0.0f, 0.0f},
 			{sourcePosition.x, sourcePosition.y, n/(n - f), 1.0f},
-			{0.0f, 0.0f, -n*f/(n - f), 0.0f}
+			{0.0f, 0.0f, -n * f/(n - f), 0.0f}
 		}};
 	}
 	
 	// C3
 	{
 		matrixC3 = {{
-			{2.0f/dims.x, 0.0f, 0.0f, 0.0f},
-			{0.0f, 2.0f/dims.y, 0.0f, 0.0f},
+			{2.0f / dims.x, 0.0f, 0.0f, 0.0f},
+			{0.0f, 2.0f / dims.y, 0.0f, 0.0f},
 			{0.0f, 0.0f, 1.0f, 0.0f},
 			{0.0f, 0.0f, 0.0f, 1.0f}
 		}};
@@ -284,14 +284,13 @@ void XRDicomData::Load(const char *filename){
 	
 	// B2 (uses C2)
 	{
-		mat<4, 4> F2 = matrixC2.Inverted();
-		mat<4, 4> C5 = {{
-			{1.0f/dims.x, 0.0f, 0.0f, 0.0f},
-			{0.0f, -1.0f/dims.y, 0.0f, 0.0f},
+		const mat<4, 4> C5 = {{
+			{1.0f / dims.x, 0.0f, 0.0f, 0.0f},
+			{0.0f, -1.0f / dims.y, 0.0f, 0.0f},
 			{0.0f, 0.0f, 1.0f, 0.0f},
 			{0.5f, 0.5f, 0.0f, 1.0f}
 		}};
-		F2 = C5 & F2;
+		const mat<4, 4> F2 = C5 & matrixC2.Inverted();
 		matrixB2 = F2.Inverted();
 	}
 }
@@ -300,17 +299,16 @@ void XRDicomData::UpdateSourceOffset(const vec<2> &newSourceOffset){
 	matrixC2[3][1] = -newSourceOffset.y;
 	matrixP[2][0] = newSourceOffset.x;
 	matrixP[2][1] = newSourceOffset.y;
-	const vec<2> dims = spacing*(vec<2>){(float)width, (float)height};
+	const vec<2> dims = spacing * (vec<2>){(float)width, (float)height};
 	// B2 (uses C2)
 	{
-		mat<4, 4> F2 = matrixC2.Inverted();
-		mat<4, 4> C5 = {{
-			{1.0f/dims.x, 0.0f, 0.0f, 0.0f},
-			{0.0f, -1.0f/dims.y, 0.0f, 0.0f},
+		const mat<4, 4> C5 = {{
+			{1.0f / dims.x, 0.0f, 0.0f, 0.0f},
+			{0.0f, -1.0f / dims.y, 0.0f, 0.0f},
 			{0.0f, 0.0f, 1.0f, 0.0f},
 			{0.5f, 0.5f, 0.0f, 1.0f}
 		}};
-		F2 = C5 & F2;
+		const mat<4, 4> F2 = C5 & matrixC2.Inverted();
 		matrixB2 = F2.Inverted();
 	}
 	Render::SourceOffsetUpdated();
@@ -537,14 +535,14 @@ void OtherData::WriteElectrodeRays(const vec<3> &pan, const mat<4, 4> &rotationM
 				1.0f
 			};
 			p4 = m & p4;
-			p3 = 0.1f * (vec<3>){p4.x, p4.y, p4.z} / p4.w;
-			outfile << "LANDMARK " << p3.x << " " << p3.y << " " << p3.z << " electrode projector " << n2d/2 - i << "\n";
+			p3 = 0.1f * p4.xyz() / p4.w;
+			outfile << "LANDMARK " << p3 << " electrode projector " << n2d/2 - i << "\n";
 		}
 		// source position / electrode projector origin
 		p4 = m & (XRay().SourcePosition() | 1.0f);
 //		M4x4_PreMultiply(p4, m);
-		p3 = 0.1f * (vec<3>){p4.x, p4.y, p4.z} / p4.w;
-		outfile << "LANDMARK " << p3.x << " " << p3.y << " " << p3.z << " electrode projector origin";
+		p3 = 0.1f * p4.xyz() / p4.w;
+		outfile << "LANDMARK " << p3 << " electrode projector origin";
 		
 		// right
 		outfile << "\nright:\n";
@@ -558,14 +556,14 @@ void OtherData::WriteElectrodeRays(const vec<3> &pan, const mat<4, 4> &rotationM
 			};
 //			M4x4_PreMultiply(p4, m);
 			p4 = m & p4;
-			p3 = 0.1f * (vec<3>){p4.x, p4.y, p4.z} / p4.w;
-			outfile << "LANDMARK " << p3.x << " " << p3.y << " " << p3.z << " electrode projector " << n2d - i << "\n";
+			p3 = 0.1f * p4.xyz() / p4.w;
+			outfile << "LANDMARK " << p3 << " electrode projector " << n2d - i << "\n";
 		}
 		// source position / electrode projector origin
 		p4 = m & (XRay().SourcePosition() | 1.0f);
 //		M4x4_PreMultiply(p4, m);
-		p3 = 0.1f * (vec<3>){p4.x, p4.y, p4.z} / p4.w;
-		outfile << "LANDMARK " << p3.x << " " << p3.y << " " << p3.z << " electrode projector origin";
+		p3 = 0.1f * p4.xyz() / p4.w;
+		outfile << "LANDMARK " << p3 << " electrode projector origin";
 	} else {
 		outfile << (leftPresent ? "left" : "right") << " only:\n";
 		// electrodes / electrode projectors
@@ -578,14 +576,14 @@ void OtherData::WriteElectrodeRays(const vec<3> &pan, const mat<4, 4> &rotationM
 			};
 //			M4x4_PreMultiply(p4, m);
 			p4 = m & p4;
-			p3 = 0.1f * (vec<3>){p4.x, p4.y, p4.z} / p4.w;
-			outfile << "LANDMARK " << p3.x << " " << p3.y << " " << p3.z << " electrode projector " << n2d - i << "\n";
+			p3 = 0.1f * p4.xyz() / p4.w;
+			outfile << "LANDMARK " << p3 << " electrode projector " << n2d - i << "\n";
 		}
 		// source position / electrode projector origin
 		p4 = m & (XRay().SourcePosition() | 1.0f);
 //		M4x4_PreMultiply(p4, m);
-		p3 = 0.1f * (vec<3>){p4.x, p4.y, p4.z} / p4.w;
-		outfile << "LANDMARK " << p3.x << " " << p3.y << " " << p3.z << " electrode projector origin";
+		p3 = 0.1f * p4.xyz() / p4.w;
+		outfile << "LANDMARK " << p3 << " electrode projector origin";
 	}
 	
 	outfile.close();

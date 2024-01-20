@@ -137,8 +137,8 @@ Particle::Particle(float (*similarityMetric)(const Array2D<uint16_t> &, const Ar
 	if(myBest.f < best.f) best = myBest;
 }
 void Particle::Update(float (*similarityMetric)(const Array2D<uint16_t> &, const Array2D<uint16_t> &, bool (*)(int , int )), OpVals &best, const PSParams &psParams, bool checkFeasible){
-	Params rPs; rPs([](){ return Uniform(0.0f, 1.0f); });
-	Params rGs; rGs([](){ return Uniform(0.0f, 1.0f); });
+	Params rPs = Params::FromFunction([](){ return Uniform(0.0f, 1.0f); });
+	Params rGs = Params::FromFunction([](){ return Uniform(0.0f, 1.0f); });
 	v = psParams.w*v + psParams.phiP*rPs*(myBest.params - current.params) + psParams.phiG*rGs*(best.params - current.params);
 	
 	const Params old = current.params;
@@ -310,7 +310,7 @@ double TimeDRR(){
 	
 	unsigned long T = UTime();
 	for(int i=0; i<1000; i++){
-		params([](){ return Uniform(-1.0f, 1.0f); });
+		params = Params::FromFunction([](){ return Uniform(-1.0f, 1.0f); });
 		UpdateSourceOffset(params.sourceOffset);
 		
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -325,7 +325,7 @@ double TimeSimMetric(float (*similarityMetric)(const Array2D<uint16_t> &, const 
 	
 	unsigned long T = UTime();
 	for(int i=0; i<1000; i++){
-		params([](){ return Uniform(-1.0f, 1.0f); });
+		params = Params::FromFunction([](){ return Uniform(-1.0f, 1.0f); });
 		Render::F(similarityMetric, params);
 	}
 	return (double)(UTime() - T)*1.0e-6;

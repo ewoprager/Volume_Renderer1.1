@@ -9,7 +9,7 @@
 #define MAX_DATASET_NAME_LENGTH 10
 
 // classes
-class VData;
+class IData;
 class CTData;
 class CTDicomData;
 class XRData;
@@ -56,11 +56,12 @@ struct Params {
 	Params &operator*=(float f){ *this = *this*f; return *this; }
 	Params &operator/=(float f){ *this = *this/f; return *this; }
 	
-	Params &operator()(float (*func)(void)){
-//		pan(func);
-//		rotation(func);
-//		sourceOffset(func);
-		return *this;
+	template <typename float_function_t> static Params FromFunction(float_function_t func){
+		return {
+			.pan = vec<3>::FromFunction(func),
+			.rotation = vec<3>::FromFunction(func),
+			.sourceOffset = vec<2>::FromFunction(func)
+		};
 	}
 	
 	friend std::ostream& operator<<(std::ostream& stream, const Params& v){

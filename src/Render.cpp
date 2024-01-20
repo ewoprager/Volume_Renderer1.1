@@ -39,7 +39,7 @@ float PortWidthInverse(){ return portWidthInverse; }
 float PortHeightInverse(){ return portHeightInverse; }
 const SDL_Rect &CompRect(){ return compRect; }
 const uint16_t (&VolumeRenderBuffer())[VOLUME_RENDER_BUFFER_SIZE] { return volumeRenderBuffer; }
-const GLuint &VBO(const int& index){ return vbo[index]; }
+GLuint VBO(const int& index){ return vbo[index]; }
 
 static bool takeDrr = false;
 bool &ShouldTakeDRR(){ return takeDrr; }
@@ -182,7 +182,7 @@ void MainInit(){
 	
 	// initialising constant uniforms
 	glUseProgram(PROGRAM(SP::main));
-	glUniformMatrix4fv(UNIFORM(SP::main, U_main::B2), 1, GL_FALSE, &XRay().B2()[0][0]);
+	glUniformMatrix4fv(UNIFORM(SP::main, U_main::B2), 1, GL_FALSE, reinterpret_cast<const GLfloat *>(&XRay().B2()));
 	glUniform1i(UNIFORM(SP::main, U_main::data), 0); // GL_TEXTURE0
 	glUniform1i(UNIFORM(SP::main, U_main::xRay), 1); // GL_TEXTURE1 (this does change tho when you press 'x')
 	
@@ -190,18 +190,18 @@ void MainInit(){
 }
 void SourceOffsetUpdated(){
 	glUseProgram(PROGRAM(SP::main));
-	glUniformMatrix4fv(UNIFORM(SP::main, U_main::B2), 1, GL_FALSE, &XRay().B2()[0][0]);
+	glUniformMatrix4fv(UNIFORM(SP::main, U_main::B2), 1, GL_FALSE, reinterpret_cast<const GLfloat *>(&XRay().B2()));
 }
 
-void DrawAxes(const vec<3> &origin, const mat<4, 4> transformation, float size=1.0f){
+void DrawAxes(const vec<3> &origin, const mat<4, 4> &transformation, float size=1.0f){
 	glUseProgram(PROGRAM(SP::axes));
 	glUniform1f(UNIFORM(SP::axes, U_axes::depth), 0.0);
 	
 	mat<4, 4> fourPositions = {{
 		origin | 1.0f,
-		origin + (vec<3>){size, 0.0f, 0.0f} | 1.0f,
-		origin + (vec<3>){0.0f, size, 0.0f} | 1.0f,
-		origin + (vec<3>){0.0f, 0.0f, size} | 1.0f
+		(origin + (vec<3>){size, 0.0f, 0.0f}) | 1.0f,
+		(origin + (vec<3>){0.0f, size, 0.0f}) | 1.0f,
+		(origin + (vec<3>){0.0f, 0.0f, size}) | 1.0f
 	}};
 //	vec<3> offset;
 //	memcpy(&fourPositions[0][0], &origin, 3*sizeof(float)); fourPositions[0][3] = 1.0f;
@@ -217,7 +217,10 @@ void DrawAxes(const vec<3> &origin, const mat<4, 4> transformation, float size=1
 //	M4x4_PreMultiply(fourPositions, transformation);
 	
 //	for(int i=0; i<16; i++) fourPositions[i/4][i%4] /= fourPositions[i/4][3];
-	for(int c=0; c<4; ++c) fourPositions[c] /= fourPositions[c][3];
+	for(int c=0; c<4; ++c){
+		const float w = fourPositions[c][3];
+		fourPositions[c] /= w;
+	}
 	
 	static const float colours[4*4] = {
 		1.0f, 1.0f, 1.0f, 1.0f,
@@ -268,9 +271,9 @@ void DrawVolumeRender(const vec<3> &pan, const mat<4, 4> &rotationMatrix, int sa
 	const mat<4, 4> B1 = F1.Inverted();
 	
 	const mat<3, 3> B1_noTranslation = {{
-		{B1[0].x, B1[0].y, B1[0].z},
-		{B1[1].x, B1[1].y, B1[1].z},
-		{B1[2].x, B1[2].y, B1[2].z}
+		B1[0].xyz(),
+		B1[1].xyz(),
+		B1[2].xyz()
 	}};
 	
 	/*
@@ -455,9 +458,9 @@ void Render(float (*similarityMetric)(const Array2D<uint16_t> &, const Array2D<u
 //	float M_normal[3][3];
 //	M4x4_Extract3x3(M, M_normal);
 	const mat<3, 3> M_normal = {{
-		{M[0].x, M[0].y, M[0].z},
-		{M[1].x, M[1].y, M[1].z},
-		{M[2].x, M[2].y, M[2].z}
+		M[0].xyz(),
+		M[1].xyz(),
+		M[2].xyz()
 	}};
 	
 	M = XRay().C3() & XRay().P() & XRay().C2() & M;
@@ -482,8 +485,8 @@ void Render(float (*similarityMetric)(const Array2D<uint16_t> &, const Array2D<u
 	
 #ifdef RENDER_OTIC_CAPSULES
 	glUseProgram(PROGRAM(SP::oc));
-	glUniformMatrix4fv(UNIFORM(SP::oc, U_oc::M), 1, GL_FALSE, &M[0][0]);
-	glUniformMatrix3fv(UNIFORM(SP::oc, U_oc::M_normal), 1, GL_FALSE, &M_normal[0][0]);
+	glUniformMatrix4fv(UNIFORM(SP::oc, U_oc::M), 1, GL_FALSE, reinterpret_cast<const GLfloat *>(&M));
+	glUniformMatrix3fv(UNIFORM(SP::oc, U_oc::M_normal), 1, GL_FALSE, reinterpret_cast<const GLfloat *>(&M_normal));
 	// left otic capsule
 	if(Data().LeftOC()){
 		glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
@@ -518,7 +521,7 @@ void Render(float (*similarityMetric)(const Array2D<uint16_t> &, const Array2D<u
 	glUniform1f(UNIFORM(SP::plot, U_plot::depth), 0.0);
 	
 	vec<4> xs = {(float)compRect.x, (float)compRect.x, (float)(compRect.x + compRect.w), (float)(compRect.x + compRect.w)};
-	xs *= 2.0f/(float)portWidth;
+	xs *= 2.0f / (float)portWidth;
 	xs -= {1.0f, 1.0f, 1.0f, 1.0f};
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
 	glVertexAttribPointer(ATTRIBUTE(SP::plot, A_plot::xPos), 1, GL_FLOAT, GL_FALSE, 1*sizeof(float), (GLvoid *)0);
@@ -526,7 +529,7 @@ void Render(float (*similarityMetric)(const Array2D<uint16_t> &, const Array2D<u
 	glBufferData(GL_ARRAY_BUFFER, sizeof(xs), &xs, GL_STATIC_DRAW);
 	
 	vec<4> ys = {(float)compRect.y, (float)(compRect.y + compRect.h), (float)compRect.y, (float)(compRect.y + compRect.h)};
-	ys *= 2.0f/(float)portHeight;
+	ys *= 2.0f / (float)portHeight;
 	ys -= {1.0f, 1.0f, 1.0f, 1.0f};
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[1]);
 	glVertexAttribPointer(ATTRIBUTE(SP::plot, A_plot::yPos), 1, GL_FLOAT, GL_FALSE, 1*sizeof(float), (GLvoid *)0);
