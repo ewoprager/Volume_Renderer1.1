@@ -24,7 +24,7 @@ RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
 "Inputs/*"
 )
 
-project(Volume_Renderer2 CXX)
+project(Volume_Renderer1.1 CXX)
 
 find_package(OpenGL REQUIRED)
 include_directories("${OPENGL_INCLUDE_DIR}")

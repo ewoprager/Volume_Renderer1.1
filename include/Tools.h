@@ -63,15 +63,15 @@ private:
 
 template <typename T> struct Array2D {
 public:
-	Array2D(const T *_start, const unsigned int &_width, const unsigned int &_height) : start(_start), width(_width), height(_height), iJump(1), jJump(_width) {}
-	Array2D(const T *_start, const unsigned int &_width, const unsigned int &_height, int _iJump, int _jJump) : start(_start), width(_width), height(_height), iJump(_iJump), jJump(_jJump) {}
+	Array2D(const T *_start, unsigned int _width, unsigned int _height) : start(_start), width(_width), height(_height), iJump(1), jJump(_width) {}
+	Array2D(const T *_start, unsigned int _width, unsigned int _height, int _iJump, int _jJump) : start(_start), width(_width), height(_height), iJump(_iJump), jJump(_jJump) {}
 	
-	const unsigned int &Width() const { return width; }
-	const unsigned int &Height() const { return height; }
+	unsigned int Width() const { return width; }
+	unsigned int Height() const { return height; }
 	int IJump() const { return iJump; }
 	int JJump() const { return jJump; }
 	
-	const T &operator()(const unsigned int &j, const unsigned int &i) const {
+	const T &operator()(unsigned int j, unsigned int i) const {
 		return start[j*jJump + i*iJump];
 	}
 	
