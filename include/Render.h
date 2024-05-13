@@ -15,7 +15,7 @@
 namespace Render {
 
 // enums for shader programs and their attributes and uniforms
-enum class SP {main, hud, oc, axes, plot, mask};
+enum class SP {main, hud, oc, axes, plot, mask, perfect};
 enum class A_main {position, texCoord};
 enum class U_main {B1, B2, jumpSize, B1_nt, data, samplesN, nInv, range, centre, drawMode, xRay};
 enum class A_hud {position};

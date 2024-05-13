@@ -131,6 +131,16 @@ void GLInit(){
 		0, // no. of uniforms
 		{} // names
 	});
+	// perfect volume renderer
+	ESDL::AddShaderProgram({
+		"../Shaders/vert.vert",
+		"../Shaders/frag_perfect.frag",
+		2, // no. of attributes
+		{"a_position", "a_texCoord"}, // names
+		{1, 1}, // sizes (in nos. of vec<4>s)
+		11, // no. of uniforms
+		{"u_B1", "u_B2", "u_jumpSize", "u_B1_noTranslation", "u_data", "u_samplesN", "u_nInv", "u_range", "u_centre", "u_drawMode", "u_xRay"} // names
+	});
 	
 	// creating window
 	portWidth = XRay().Width();
@@ -186,11 +196,19 @@ void MainInit(){
 	glUniform1i(UNIFORM(SP::main, U_main::data), 0); // GL_TEXTURE0
 	glUniform1i(UNIFORM(SP::main, U_main::xRay), 1); // GL_TEXTURE1 (this does change tho when you press 'x')
 	
+	glUseProgram(PROGRAM(SP::perfect));
+	glUniformMatrix4fv(UNIFORM(SP::perfect, U_main::B2), 1, GL_FALSE, reinterpret_cast<const GLfloat *>(&XRay().B2()));
+	glUniform1i(UNIFORM(SP::perfect, U_main::data), 0); // GL_TEXTURE0
+	glUniform1i(UNIFORM(SP::perfect, U_main::xRay), 1); // GL_TEXTURE1 (this does change tho when you press 'x')
+	
 	Plot::InitMemry();
 }
 void SourceOffsetUpdated(){
 	glUseProgram(PROGRAM(SP::main));
 	glUniformMatrix4fv(UNIFORM(SP::main, U_main::B2), 1, GL_FALSE, reinterpret_cast<const GLfloat *>(&XRay().B2()));
+	
+	glUseProgram(PROGRAM(SP::perfect));
+	glUniformMatrix4fv(UNIFORM(SP::perfect, U_main::B2), 1, GL_FALSE, reinterpret_cast<const GLfloat *>(&XRay().B2()));
 }
 
 void DrawAxes(const vec<3> &origin, const mat<4, 4> &transformation, float size=1.0f){
@@ -296,16 +314,16 @@ void DrawVolumeRender(const vec<3> &pan, const mat<4, 4> &rotationMatrix, int sa
 	// main shader program
 	glUseProgram(PROGRAM(SP::main));
 	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
-	
-	// ct data texture
+//	
+//	// ct data texture
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_3D, CT().TextureHandle());
-	
-	// x-ray data texture
+//	
+//	// x-ray data texture
 	glActiveTexture(GL_TEXTURE1);
 	glBindTexture(GL_TEXTURE_2D, XRay().TextureHandle());
-	
-	// uniforms
+//	
+//	// uniforms
 	glUniformMatrix4fv(UNIFORM(SP::main, U_main::B1), 1, GL_FALSE, reinterpret_cast<const GLfloat *>(&B1));
 	glUniform1f(UNIFORM(SP::main, U_main::jumpSize), CT().DirVecLength()*nInv);
 	glUniformMatrix3fv(UNIFORM(SP::main, U_main::B1_nt), 1, GL_FALSE, reinterpret_cast<const GLfloat *>(&B1_noTranslation));
@@ -315,14 +333,46 @@ void DrawVolumeRender(const vec<3> &pan, const mat<4, 4> &rotationMatrix, int sa
 	glUniform1f(UNIFORM(SP::main, U_main::centre), centre);
 	glUniform1i(UNIFORM(SP::main, U_main::drawMode), (int)drawMode);
 	glUniform1i(UNIFORM(SP::main, U_main::xRay), drawMode == DrawMode::static_drr_and_shallow_drr ? 2 : 1); // GL_TEXTURE2 vs. GL_TEXTURE1
-	
-	// attributes
+//	
+//	// attributes
 	vertexArray.Enable(ATTRIBUTE(SP::main, A_main::position), 0);
 	vertexArray.Enable(ATTRIBUTE(SP::main, A_main::texCoord), 1);
+//	
+//	// drawing
+	glBufferData(GL_ARRAY_BUFFER, vertexArray.size, vertexArray.array, GL_STATIC_DRAW);
+	glDrawArrays(GL_TRIANGLES, 0, vertexArray.verticesN / 2);
+	
+	
+	// perfect shader program
+	glUseProgram(PROGRAM(SP::perfect));
+//	glBindBuffer(GL_ARRAY_BUFFER, vbo[0]);
+	
+	// ct data texture
+//	glActiveTexture(GL_TEXTURE0);
+//	glBindTexture(GL_TEXTURE_3D, CT().TextureHandle());
+	
+	// x-ray data texture
+//	glActiveTexture(GL_TEXTURE1);
+//	glBindTexture(GL_TEXTURE_2D, XRay().TextureHandle());
+	
+	// uniforms
+	glUniformMatrix4fv(UNIFORM(SP::perfect, U_main::B1), 1, GL_FALSE, reinterpret_cast<const GLfloat *>(&B1));
+	glUniform1f(UNIFORM(SP::perfect, U_main::jumpSize), CT().DirVecLength()*nInv);
+	glUniformMatrix3fv(UNIFORM(SP::perfect, U_main::B1_nt), 1, GL_FALSE, reinterpret_cast<const GLfloat *>(&B1_noTranslation));
+	glUniform1i(UNIFORM(SP::perfect, U_main::samplesN), samplesN);
+	glUniform1f(UNIFORM(SP::perfect, U_main::nInv), nInv);
+	glUniform1f(UNIFORM(SP::perfect, U_main::range), range);
+	glUniform1f(UNIFORM(SP::perfect, U_main::centre), centre);
+	glUniform1i(UNIFORM(SP::perfect, U_main::drawMode), (int)drawMode);
+	glUniform1i(UNIFORM(SP::perfect, U_main::xRay), drawMode == DrawMode::static_drr_and_shallow_drr ? 2 : 1); // GL_TEXTURE2 vs. GL_TEXTURE1
+	
+	// attributes
+//	vertexArray.Enable(ATTRIBUTE(SP::perfect, A_main::position), 0);
+//	vertexArray.Enable(ATTRIBUTE(SP::perfect, A_main::texCoord), 1);
 	
 	// drawing
-	glBufferData(GL_ARRAY_BUFFER, vertexArray.size, vertexArray.array, GL_STATIC_DRAW);
-	glDrawArrays(GL_TRIANGLES, 0, vertexArray.verticesN);
+//	glBufferData(GL_ARRAY_BUFFER, vertexArray.size, vertexArray.array, GL_STATIC_DRAW);
+	glDrawArrays(GL_TRIANGLES, vertexArray.verticesN / 2, vertexArray.verticesN / 2);
 }
 
 void TakeDRR(){
